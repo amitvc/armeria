@@ -158,7 +158,6 @@ final class HttpClientFactory implements ClientFactory {
         http1HeaderNaming = options.http1HeaderNaming();
         maxConnectionAgeMillis = options.maxConnectionAgeMillis();
         maxNumRequestsPerConnection = options.maxNumRequestsPerConnection();
-
         this.options = options;
 
         clientDelegate = new HttpClientDelegate(this, addressResolverGroup);

@@ -39,7 +39,7 @@ import it.unimi.dsi.fastutil.chars.Char2ObjectOpenHashMap;
  *
  * @param <V> Value type of {@link RoutingTrie}.
  */
-final class RoutingTrieBuilder<V> {
+public final class RoutingTrieBuilder<V> {
 
     private static final char KEY_PARAMETER = 0x01;
     private static final char KEY_CATCH_ALL = 0x02;
