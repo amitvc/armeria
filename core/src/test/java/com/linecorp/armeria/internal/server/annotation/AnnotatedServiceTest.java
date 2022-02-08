@@ -46,7 +46,7 @@ import org.junit.jupiter.api.extension.RegisterExtension;
 
 import com.google.common.collect.ImmutableList;
 
-import com.linecorp.armeria.client.WebClient;
+import com.linecorp.armeria.client.BlockingWebClient;
 import com.linecorp.armeria.common.AggregatedHttpRequest;
 import com.linecorp.armeria.common.AggregatedHttpResponse;
 import com.linecorp.armeria.common.HttpHeaderNames;
@@ -131,6 +131,9 @@ class AnnotatedServiceTest {
                                 LoggingService.newDecorator());
 
             sb.annotatedService("/12", new MyAnnotatedService12(),
+                                LoggingService.newDecorator());
+
+            sb.annotatedService("/13", new MyAnnotatedService13(),
                                 LoggingService.newDecorator());
         }
     };
@@ -717,6 +720,20 @@ class AnnotatedServiceTest {
         }
     }
 
+    @ResponseConverter(UnformattedStringConverterFunction.class)
+    public static class MyAnnotatedService13 {
+
+        @Get("/wildcard1")
+        public String wildcard(@Param List<? extends String> param) {
+            return String.join(":", param);
+        }
+
+        @Get("/wildcard2")
+        public <T extends String> String wildcard2(@Param List<T> param) {
+            return String.join(":", param);
+        }
+    }
+
     @Test
     void testAnnotatedService() throws Exception {
         try (CloseableHttpClient hc = HttpClients.createMinimal()) {
@@ -841,32 +858,32 @@ class AnnotatedServiceTest {
 
     @Test
     void testAdvancedAnnotatedService() throws Exception {
-        final WebClient client = WebClient.of(server.httpUri());
+        final BlockingWebClient client = BlockingWebClient.of(server.httpUri());
         final String path = "/8/same/path";
 
         RequestHeaders headers = RequestHeaders.of(HttpMethod.GET, path);
-        AggregatedHttpResponse res = client.execute(headers).aggregate().join();
+        AggregatedHttpResponse res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).isNull();
         assertThat(res.contentUtf8()).isEqualTo("GET");
 
         // The same as the above.
         headers = RequestHeaders.of(HttpMethod.GET, path, HttpHeaderNames.ACCEPT, "*/*");
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).hasToString("text/plain");
         assertThat(res.contentUtf8()).isEqualTo("GET/TEXT");
 
         headers = RequestHeaders.of(HttpMethod.GET, path,
                                     HttpHeaderNames.ACCEPT, "application/json;q=0.9, text/plain");
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).hasToString("text/plain");
         assertThat(res.contentUtf8()).isEqualTo("GET/TEXT");
 
         headers = RequestHeaders.of(HttpMethod.GET, path,
                                     HttpHeaderNames.ACCEPT, "application/json;q=0.9, text/plain;q=0.7");
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).isSameAs(MediaType.JSON);
         assertThat(res.contentUtf8()).isEqualTo("GET/JSON");
@@ -875,7 +892,7 @@ class AnnotatedServiceTest {
         headers = RequestHeaders.of(HttpMethod.GET, path,
                                     HttpHeaderNames.ACCEPT,
                                     "application/json;charset=UTF-8;q=0.9, text/plain;q=0.7");
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).hasToString("text/plain");
         assertThat(res.contentUtf8()).isEqualTo("GET/TEXT");
@@ -884,7 +901,7 @@ class AnnotatedServiceTest {
         headers = RequestHeaders.of(HttpMethod.GET, path,
                                     HttpHeaderNames.ACCEPT,
                                     "application/json;charset=UTF-8;q=0.9, text/html;q=0.7");
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).isNull();
         assertThat(res.contentUtf8()).isEqualTo("GET");
@@ -893,7 +910,7 @@ class AnnotatedServiceTest {
                                     HttpHeaderNames.ACCEPT,
                                     "application/x-www-form-urlencoded, " +
                                     "application/json;charset=UTF-8;q=0.9, text/plain;q=0.7");
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).hasToString("text/plain");
         assertThat(res.contentUtf8()).isEqualTo("GET/TEXT");
@@ -901,27 +918,27 @@ class AnnotatedServiceTest {
         headers = RequestHeaders.of(HttpMethod.POST, path,
                                     HttpHeaderNames.ACCEPT, "application/json",
                                     HttpHeaderNames.CONTENT_TYPE, "application/json");
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).isSameAs(MediaType.JSON);
         assertThat(res.contentUtf8()).isEqualTo("POST/JSON/BOTH");
 
         headers = RequestHeaders.of(HttpMethod.POST, path,
                                     HttpHeaderNames.CONTENT_TYPE, "application/json");
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).isNull();
         assertThat(res.contentUtf8()).isEqualTo("POST/JSON");
 
         headers = RequestHeaders.of(HttpMethod.POST, path,
                                     HttpHeaderNames.ACCEPT, "application/json");
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).isSameAs(MediaType.JSON);
         assertThat(res.contentUtf8()).isEqualTo("POST/JSON/BOTH");
 
         headers = RequestHeaders.of(HttpMethod.POST, path);
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).isNull();
         assertThat(res.contentUtf8()).isEqualTo("POST");
@@ -929,7 +946,7 @@ class AnnotatedServiceTest {
         headers = RequestHeaders.of(HttpMethod.POST, path,
                                     HttpHeaderNames.ACCEPT, "test/json",
                                     HttpHeaderNames.CONTENT_TYPE, "application/json");
-        res = client.execute(headers).aggregate().join();
+        res = client.execute(headers);
         assertThat(res.status()).isSameAs(HttpStatus.OK);
         assertThat(res.headers().contentType()).isNull();
         assertThat(res.contentUtf8()).isEqualTo("POST/JSON");
@@ -1061,6 +1078,14 @@ class AnnotatedServiceTest {
             testStatusCode(hc, post("/12/getMapping"), 405);
             testStatusCode(hc, get("/12/postMapping"), 405);
             testBody(hc, post("/12/postMapping"), "/12/postMapping");
+        }
+    }
+
+    @Test
+    void testWildcard() throws Exception {
+        try (CloseableHttpClient hc = HttpClients.createMinimal()) {
+            testBody(hc, get("/13/wildcard1?param=Hello&param=World"), "Hello:World");
+            testBody(hc, get("/13/wildcard2?param=Hello&param=World"), "Hello:World");
         }
     }
 
